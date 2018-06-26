@@ -1,22 +1,17 @@
 #define F_CPU 16000000UL //16MHz
 
-#define PLOTTER	0        //Вывод в формате программы SerialPortPlotter
+#define PLOTTER	0        //Г‚Г»ГўГ®Г¤ Гў ГґГ®Г°Г¬Г ГІГҐ ГЇГ°Г®ГЈГ°Г Г¬Г¬Г» SerialPortPlotter
 
-#define rot 2300         //Путь воздуха за один оборот, мм * 10
-
-#define DSOK_flag 0x01
+#define rot 2300         //ГЏГіГІГј ГўГ®Г§Г¤ГіГµГ  Г§Г  Г®Г¤ГЁГ­ Г®ГЎГ®Г°Г®ГІ, Г¬Г¬ * 10
 
 #include <avr/io.h>\
 #include <stdint.h>
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include "usart.h"
-#include "DS18B20.h"
 
-int DS_temperature = 0;
 unsigned int windspeed = 0;
 unsigned int counter = 0;
-unsigned char flag = 0;
 
 ISR(TIMER0_COMPA_vect) {
 	counter++;
@@ -34,11 +29,6 @@ ISR(INT1_vect) {
 	
 		#if PLOTTER
 			USART_send(36);
-			if(flag & DSOK_flag) {
-				DS_temperature = DS18B20_temperature();
-				USART_send_decimal(DS_temperature, 1);
-				USART_send(" ");
-			}
 			USART_send_integer((int) windspeed / 10);
 			USART_send(0x2E);
 			USART_send_integer((int) windspeed % 10);
@@ -46,13 +36,6 @@ ISR(INT1_vect) {
 			USART_send_BK();
 		#else
 		if(windspeed >= 0.001) {
-			if(flag & DSOK_flag) {
-				DS_temperature = DS18B20_temperature();
-				USART_send_string("Temperature: ");
-				USART_send_decimal(DS_temperature, 1);
-				USART_send_string(" C");
-				USART_send_BK();
-			}
 			USART_send_string("Wind speed: ");
 			USART_send_integer((int) windspeed / 10);
 			USART_send(0x2E);
@@ -70,12 +53,12 @@ ISR(INT1_vect) {
 }
 
 int main(void) {
-	DDRB |= (1<<5); //LED на 13 выводе
+	DDRB |= (1<<5); //LED Г­Г  13 ГўГ»ГўГ®Г¤ГҐ
 	PORTB |= (1<<5);
 		
 	//USART
-	DDRD &=~ (1<<0);   //PD0 (RX) - выход
-	DDRD |= (1<<1);    //PD1 (TX) - вход
+	DDRD &=~ (1<<0);   //PD0 (RX) - ГўГ»ГµГ®Г¤
+	DDRD |= (1<<1);    //PD1 (TX) - ГўГµГ®Г¤
 	USART_init(38400);
 	#if PLOTTER		
 	#else
@@ -84,43 +67,14 @@ int main(void) {
 	#endif
 	
 	//Magnet
-	DDRD &=~ (1<<3); //INT1 на 3 ноге
-	PORTD |= (1<<3); //Pullup на INT1 ноге
-	DDRD |= (1<<4);  //Земля на 4 ноге
+	DDRD &=~ (1<<3); //INT1 Г­Г  3 Г­Г®ГЈГҐ
+	PORTD |= (1<<3); //Pullup Г­Г  INT1 Г­Г®ГЈГҐ
+	DDRD |= (1<<4);  //Г‡ГҐГ¬Г«Гї Г­Г  4 Г­Г®ГЈГҐ
 	PORTD &=~ (1<<4);
 	
 	EICRA = 8;
 	EIMSK = 2;
-	
-	
-	/*//DS18B20
-	#if PLOTTER
-	#else
-		USART_send_string("Seraching for DS18B20 (Library v0.1 by Dubos)");
-	#endif	
-	if(DS18B20_init() > 0) {
-		#if PLOTTER
-		#else
-			USART_send_string(" - Found");
-			USART_send_BK();
-		#endif	
-		DS18B20_write(SKIP_ROM);
-		DS18B20_write(WRITE_SCRATCHPAD);
-		DS18B20_write(0x7F);
-		DS18B20_write(0x7F);
-		DS18B20_write(0x7F);
 		
-		flag |= (1<<DSOK_flag);
-	}
-	else {
-		#if PLOTTER
-		#else
-			USART_send_string(" - Not found");
-			USART_send_BK();
-		#endif
-		flag &=~ (1<<DSOK_flag);
-	}*/	
-	
 	//For ATmega328
 	TCCR0A = 0;
 	TCCR0B = 3;
